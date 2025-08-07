@@ -12,7 +12,7 @@ namespace MCPValidation
     {
         static async Task Main(string[] args)
         {
-            var schemaPath = "/Users/robertwoodley/code/GreenAcres/ConversationalUX/bin/Debug/net9.0/enhancedSchema.json";
+            var schemaPath = "/Users/robertwoodley/code/retirement-project-spikes/argument-validator/MCPToolArgumentValidator/EnhancedSchema.json";
             var systemPromptPath = "/Users/robertwoodley/code/GreenAcres/Agent/prompts/SystemPrompt.txt";
             var userPromptPath = "/Users/robertwoodley/code/GreenAcres/ConversationalUX/evals/Case-03/prompt.txt";
             var toolRequestPath = args[0];
@@ -24,6 +24,12 @@ namespace MCPValidation
             var userPrompt = File.ReadAllText(userPromptPath);
             var toolRequestJson = File.ReadAllText(toolRequestPath);
 
+            // Extract session ID and query ID from the tool request path
+            var pathParts = toolRequestPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var sessionId = pathParts.Length >= 3 ? pathParts[pathParts.Length - 3] : "";
+            var queryId = pathParts.Length >= 2 ? pathParts[pathParts.Length - 2] : "";
+            var request = pathParts.Length >= 1 ? pathParts[pathParts.Length - 1] : "";
+            Console.WriteLine($"Session ID: {sessionId}, Query ID: {queryId}, Request: {request}");
             var prompt = $"""
                 Today's date is {DateTime.UtcNow:yyyy-MM-dd}.
                 You are an expert in validating structured tool requests against user prompts, system instructions, and schemas.
@@ -85,16 +91,18 @@ namespace MCPValidation
                 await foreach (ChatResponseUpdate item in
                     chatClient.GetStreamingResponseAsync(chatHistory))
                 {
-                    // Console.Write(item.Text);
+                    if (isInteractive) Console.Write(item.Text);
                     response += item.Text;
                 }
                 chatHistory.Add(new ChatMessage(ChatRole.Assistant, response));
             }
             if (!isInteractive)
             {
+
+                var validationResults = $"validation-report-{request}.txt";
                 var validationFilePath = Path.Combine(
                         Path.GetDirectoryName(toolRequestPath) ?? "",
-                        "validation-report.txt"
+                        validationResults
                     );
 
                 var status = response.Contains("TOOL REQUEST VALID") ? "Valid" : "Invalid";
@@ -109,11 +117,6 @@ namespace MCPValidation
                         "<table border='1'><tr><th>Date</th><th>Session ID</th><th>Query ID</th><th>Tool Request</th><th>Status</th></tr>"
                         + Environment.NewLine);
                 }
-
-                // Extract session ID and query ID from the tool request path
-                var pathParts = toolRequestPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                var sessionId = pathParts.Length >= 3 ? pathParts[pathParts.Length - 3] : "";
-                var queryId = pathParts.Length >= 2 ? pathParts[pathParts.Length - 2] : "";
 
                 File.AppendAllText("validation-report.html",
                 $"<tr><td>{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}</td>" +
