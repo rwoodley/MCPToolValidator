@@ -106,12 +106,19 @@ namespace MCPValidation
                     File.WriteAllText("validation-report.html",
                         "<html><head><title>Validation Report</title></head><body>" +
                         "<h1>Validation Report</h1>" +
-                        "<table border='1'><tr><th>Date</th><th>Tool Request</th><th>Status</th></tr>"
+                        "<table border='1'><tr><th>Date</th><th>Session ID</th><th>Query ID</th><th>Tool Request</th><th>Status</th></tr>"
                         + Environment.NewLine);
                 }
 
+                // Extract session ID and query ID from the tool request path
+                var pathParts = toolRequestPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                var sessionId = pathParts.Length >= 3 ? pathParts[pathParts.Length - 3] : "";
+                var queryId = pathParts.Length >= 2 ? pathParts[pathParts.Length - 2] : "";
+
                 File.AppendAllText("validation-report.html",
                 $"<tr><td>{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}</td>" +
+                $"<td>{sessionId}</td>" +
+                $"<td>{queryId}</td>" +
                 $"<td><a href=\"{toolRequestPath}\">{Path.GetFileName(toolRequestPath)}</a></td>" +
                 $"<td><a href=\"{validationFilePath}\">{status}</a></td>" +
                 $"</tr>" + Environment.NewLine
